@@ -72,6 +72,7 @@ router.get('/availability', (req, res) => {
   });
 });
 
+<<<<<<< HEAD
 // GET /api/bookings/lookup?id=&email= - public status check for a guest.
 // Requires both the booking id AND the email used at booking time, so a
 // guest can't page through other people's booking references.
@@ -108,6 +109,8 @@ router.get('/lookup', (req, res) => {
   });
 });
 
+=======
+>>>>>>> 77658f5891fea3cb914673596017febedb44e284
 // POST /api/bookings - create a new booking request
 router.post('/', (req, res) => {
   const { name, email, phone, guests, checkin, checkout, roomId, notes } = req.body || {};
@@ -167,7 +170,11 @@ router.post('/', (req, res) => {
     checkout: booking.checkout,
     nights: booking.nights,
     totalPrice: booking.total_price,
+<<<<<<< HEAD
     message: `Request received — booking reference #${booking.id}. We'll confirm your stay by phone or email shortly. You can check your booking status anytime at /lookup.html using this reference number and your email.`
+=======
+    message: `Request received — booking reference #${booking.id}. We'll confirm your stay by phone or email shortly.`
+>>>>>>> 77658f5891fea3cb914673596017febedb44e284
   });
 });
 
