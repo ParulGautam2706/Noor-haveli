@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noor Haveli — Admin</title>
+<style>
+  :root{
+    --bg:#10151A; --surface:#1B232B; --text:#F3F1E9; --text-muted:#8E97A0;
+    --accent:#3F8C7A; --accent-2:#C9A34E; --line:rgba(243,241,233,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Inter,sans-serif; margin:0; padding:32px;}
+  h1{font-size:1.5rem; margin-bottom:4px;}
+  p.sub{color:var(--text-muted); margin-bottom:24px; font-size:0.9rem;}
+  .token-row{display:flex; gap:10px; margin-bottom:24px; max-width:480px;}
+  input, select{background:var(--surface); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:4px; font-size:0.9rem; flex:1;}
+  button{background:var(--accent-2); color:#1B1607; border:none; padding:10px 18px; border-radius:4px; font-weight:600; cursor:pointer;}
+  button:hover{background:#dcb862;}
+  table{width:100%; border-collapse:collapse; font-size:0.88rem;}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line);}
+  th{color:var(--accent-2); font-weight:600;}
+  tr:hover{background:var(--surface);}
+  .status{padding:3px 10px; border-radius:20px; font-size:0.76rem; text-transform:capitalize;}
+  .status.pending{background:rgba(201,163,78,0.18); color:var(--accent-2);}
+  .status.confirmed{background:rgba(63,140,122,0.2); color:var(--accent);}
+  .status.cancelled{background:rgba(224,138,138,0.15); color:#E08A8A;}
+  select.status-select{padding:4px 6px; font-size:0.78rem;}
+  #msg{color:#E08A8A; margin-bottom:16px; font-size:0.88rem;}
+  #empty{color:var(--text-muted); margin-top:20px;}
+</style>
+</head>
+<body>
+  <h1>Noor Haveli — Bookings</h1>
+  <p class="sub">Enter the admin token (set as ADMIN_TOKEN in the server's .env file) to view and manage booking requests.</p>
+
+  <div class="token-row">
+    <input type="password" id="tokenInput" placeholder="Admin token">
+    <button id="loadBtn">Load bookings</button>
+  </div>
+
+  <div id="msg"></div>
+  <table id="bookingsTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th><th>Guest</th><th>Contact</th><th>Room</th><th>Dates</th><th>Nights</th><th>Total</th><th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="bookingsBody"></tbody>
+  </table>
+  <div id="empty" style="display:none;">No bookings yet.</div>
+
+<script>
+  const tokenInput = document.getElementById('tokenInput');
+  const loadBtn = document.getElementById('loadBtn');
+  const msg = document.getElementById('msg');
+  const table = document.getElementById('bookingsTable');
+  const body = document.getElementById('bookingsBody');
+  const empty = document.getElementById('empty');
+
+  const saved = sessionStorage.getItem('nh_admin_token');
+  if (saved) tokenInput.value = saved;
+
+  async function loadBookings() {
+    const token = tokenInput.value.trim();
+    msg.textContent = '';
+    if (!token) { msg.textContent = 'Enter the admin token first.'; return; }
+    sessionStorage.setItem('nh_admin_token', token);
+
+    try {
+      const res = await fetch('/api/bookings', { headers: { 'x-admin-token': token } });
+      const data = await res.json();
+      if (!res.ok) {
+        msg.textContent = data.error || 'Failed to load bookings.';
+        table.style.display = 'none';
+        empty.style.display = 'none';
+        return;
+      }
+      renderRows(data);
+    } catch (err) {
+      msg.textContent = 'Could not reach the server.';
+      console.error(err);
+    }
+  }
+
+  function renderRows(rows) {
+    if (!rows.length) {
+      table.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    table.style.display = 'table';
+    body.innerHTML = rows.map(b => `
+      <tr data-id="${b.id}">
+        <td>#${b.id}</td>
+        <td>${b.name}</td>
+        <td>${b.email}<br><span style="color:var(--text-muted)">${b.phone}</span></td>
+        <td>${b.room_name}</td>
+        <td>${b.checkin} → ${b.checkout}</td>
+        <td>${b.nights}</td>
+        <td>₹${b.total_price.toLocaleString('en-IN')}</td>
+        <td>
+          <select class="status-select" data-id="${b.id}">
+            <option value="pending" ${b.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="confirmed" ${b.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+            <option value="cancelled" ${b.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+        </td>
+      </tr>
+    `).join('');
+
+    body.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        const id = sel.getAttribute('data-id');
+        const token = tokenInput.value.trim();
+        try {
+          const res = await fetch(`/api/bookings/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
+            body: JSON.stringify({ status: sel.value })
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            msg.textContent = data.error || 'Failed to update status.';
+          } else {
+            msg.textContent = '';
+          }
+        } catch (err) {
+          msg.textContent = 'Could not reach the server.';
+        }
+      });
+    });
+  }
+
+  loadBtn.addEventListener('click', loadBookings);
+  if (saved) loadBookings();
+</script>
+</body>
+</html>
