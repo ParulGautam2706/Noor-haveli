@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check your booking — Noor Haveli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600;7..72,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10151A; --surface: #1B232B; --text: #F3F1E9; --text-muted: #8E97A0;
+    --accent: #3F8C7A; --accent-2: #C9A34E; --line: rgba(243,241,233,0.12);
+  }
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  body{
+    background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif;
+    min-height: 100vh; display:flex; align-items:center; justify-content:center;
+    padding: 40px 20px;
+  }
+  a{ color: inherit; }
+  .card{ width:100%; max-width: 460px; }
+  .logo{ display:flex; align-items:baseline; gap: 9px; font-family:'Literata', serif; font-size: 1.3rem; font-weight: 600; margin-bottom: 36px; }
+  .logo span{ font-family:'Inter',sans-serif; font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  h1{ font-family:'Literata', serif; font-weight: 500; font-size: 1.7rem; margin-bottom: 8px; }
+  p.sub{ color: var(--text-muted); font-size: 0.92rem; margin-bottom: 28px; }
+  .form-field{ display:flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-field label{ font-size: 0.8rem; color: var(--text-muted); }
+  .form-field input{
+    background: var(--surface); border: 1px solid var(--line); border-radius: 3px;
+    padding: 12px 14px; color: var(--text); font-size: 0.95rem; font-family: inherit;
+  }
+  .form-field input:focus-visible{ outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  button{
+    width:100%; padding: 13px; border-radius: 3px; border:none; cursor:pointer;
+    background: var(--accent-2); color:#1B1607; font-weight: 600; font-size: 0.95rem;
+    font-family: inherit; margin-top: 6px;
+  }
+  button:hover{ background:#dcb862; }
+  button:disabled{ opacity:0.6; cursor:default; }
+
+  #errorNote{ color:#E08A8A; font-size:0.88rem; margin-top: 14px; display:none; }
+  #errorNote.show{ display:block; }
+
+  .result{
+    display:none; margin-top: 28px; background: var(--surface); border:1px solid var(--line);
+    border-radius: 6px; padding: 28px;
+  }
+  .result.show{ display:block; }
+  .result-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 20px; }
+  .result-top h2{ font-family:'Literata', serif; font-weight:500; font-size:1.2rem; }
+  .status-pill{
+    font-size: 0.78rem; text-transform: capitalize; padding: 5px 14px; border-radius: 20px; font-weight: 600;
+  }
+  .status-pill.pending{ background: rgba(201,163,78,0.18); color: var(--accent-2); }
+  .status-pill.confirmed{ background: rgba(63,140,122,0.22); color: var(--accent); }
+  .status-pill.cancelled{ background: rgba(224,138,138,0.15); color: #E08A8A; }
+  .result-row{ display:flex; justify-content:space-between; padding: 10px 0; border-top: 1px solid var(--line); font-size: 0.9rem; }
+  .result-row .label{ color: var(--text-muted); }
+  .status-explainer{ margin-top: 18px; font-size: 0.85rem; color: var(--text-muted); line-height:1.5; }
+
+  .back-link{ display:inline-block; margin-top: 24px; font-size: 0.85rem; color: var(--text-muted); }
+  .back-link:hover{ color: var(--accent-2); }
+</style>
+</head>
+<body>
+  <div class="card">
+    <a href="index.html" class="logo">Noor Haveli <span>Rishikesh</span></a>
+    <h1>Check your booking</h1>
+    <p class="sub">Enter your booking reference number and the email you used when requesting the stay.</p>
+
+    <form id="lookupForm">
+      <div class="form-field">
+        <label for="bookingId">Booking reference number</label>
+        <input type="text" id="bookingId" placeholder="e.g. 4" required inputmode="numeric">
+      </div>
+      <div class="form-field">
+        <label for="bookingEmail">Email</label>
+        <input type="email" id="bookingEmail" required>
+      </div>
+      <button type="submit" id="lookupBtn">Check status</button>
+    </form>
+
+    <p id="errorNote"></p>
+
+    <div class="result" id="result">
+      <div class="result-top">
+        <h2 id="resultRoom"></h2>
+        <span class="status-pill" id="statusPill"></span>
+      </div>
+      <div class="result-row"><span class="label">Reference</span><span id="resultId"></span></div>
+      <div class="result-row"><span class="label">Dates</span><span id="resultDates"></span></div>
+      <div class="result-row"><span class="label">Nights</span><span id="resultNights"></span></div>
+      <div class="result-row"><span class="label">Guests</span><span id="resultGuests"></span></div>
+      <div class="result-row"><span class="label">Total</span><span id="resultTotal"></span></div>
+      <p class="status-explainer" id="statusExplainer"></p>
+    </div>
+
+    <a href="index.html" class="back-link">← Back to Noor Haveli</a>
+  </div>
+
+<script>
+  const form = document.getElementById('lookupForm');
+  const btn = document.getElementById('lookupBtn');
+  const errorNote = document.getElementById('errorNote');
+  const result = document.getElementById('result');
+
+  const explainers = {
+    pending: "We've received your request and haven't confirmed it yet — we'll reach out by phone or email shortly.",
+    confirmed: "Your stay is confirmed. We look forward to hosting you.",
+    cancelled: "This booking has been cancelled. If that's unexpected, please contact the front desk."
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorNote.classList.remove('show');
+    result.classList.remove('show');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
+
+    const id = document.getElementById('bookingId').value.trim();
+    const email = document.getElementById('bookingEmail').value.trim();
+
+    try {
+      const params = new URLSearchParams({ id, email });
+      const res = await fetch(`/api/bookings/lookup?${params}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        errorNote.textContent = data.error || 'Something went wrong.';
+        errorNote.classList.add('show');
+        return;
+      }
+
+      document.getElementById('resultRoom').textContent = data.room;
+      document.getElementById('resultId').textContent = `#${data.id}`;
+      document.getElementById('resultDates').textContent = `${data.checkin} → ${data.checkout}`;
+      document.getElementById('resultNights').textContent = `${data.nights} night${data.nights > 1 ? 's' : ''}`;
+      document.getElementById('resultGuests').textContent = data.guests;
+      document.getElementById('resultTotal').textContent = `₹${data.totalPrice.toLocaleString('en-IN')}`;
+
+      const pill = document.getElementById('statusPill');
+      pill.textContent = data.status;
+      pill.className = `status-pill ${data.status}`;
+
+      document.getElementById('statusExplainer').textContent = explainers[data.status] || '';
+
+      result.classList.add('show');
+    } catch (err) {
+      errorNote.textContent = 'Could not reach the server. Please try again in a moment.';
+      errorNote.classList.add('show');
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Check status';
+    }
+  });
+</script>
+</body>
+</html>
